@@ -1,7 +1,6 @@
 var fs = require('fs'),
   babel = require('rollup-plugin-babel'),
   uglify = require('rollup-plugin-uglify'),
-  typescript = require('rollup-plugin-typescript'),
   nodeResolve = require('rollup-plugin-node-resolve'),
   commonjs = require('rollup-plugin-commonjs'),
   inject = require('rollup-plugin-inject'),
@@ -62,20 +61,19 @@ function getRollupConfig(release) {
 
   return {
     sourceMap: true,
-    format: 'es6',
+    format: 'umd',
+    moduleName: 'BrowserFS',
     exports: 'named',
     useStrict: true,
     plugins: [
-      typescript({
-        declaration: false,
-        typescript: require('typescript')
-      }),
       alias({
-        resolve: ['.js', '.ts'],
+        resolve: ['.js'],
         buffer: require.resolve('bfs-buffer'),
+        async: require.resolve('async-es'),
         fs: './src/core/node_fs',
         path: require.resolve('bfs-path'),
-        'wrapped-assert': './test/harness/wrapped-assert'
+        'wrapped-assert': './test/harness/wrapped-assert',
+        'stream': require.resolve('stream-browserify')
       }),
       nodeResolve({
         jsnext: true,
@@ -85,9 +83,15 @@ function getRollupConfig(release) {
       }),
       commonjs({
         include: ['node_modules/**'],
+        exclude: ['node_modules/*-es/**'],
         sourceMap: true,
-        extensions: ['.js', '.ts'],
-        ignoreGlobal: true
+        extensions: ['.js'],
+        ignoreGlobal: true,
+        namedExports: {
+          'node_modules/bfs-path/js/path.js': [
+            'resolve', 'dirname', 'join', 'sep', 'relative', 'basename'
+          ]
+        }
       }),
       inject({
         process: require.resolve('bfs-process'),
@@ -204,7 +208,7 @@ module.exports = function(grunt) {
     },
     ts: {
       default: {
-        tsconfig: path.resolve(__dirname, "generated_node_tsconfig.json")
+        tsconfig: path.resolve(__dirname, "tsconfig.json")
       }
     },
     karma: {
@@ -323,7 +327,7 @@ module.exports = function(grunt) {
       options: getRollupConfig(false),
       release: {
         files: {
-          'build/browserfs.js': 'src/browserify_main.ts'
+          'build/browserfs.js': 'build/e6/browserify_main.js'
         }
       }
     },

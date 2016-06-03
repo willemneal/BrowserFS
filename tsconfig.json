@@ -4,11 +4,11 @@
         "noImplicitAny": false,
         "removeComments": true,
         "preserveConstEnums": true,
-        "inlineSourceMap": true,
+        "sourceMap": true,
         "inlineSources": true,
         "target": "ES6",
         "declaration": true,
-        "outDir": "build/node"
+        "outDir": "build/e6"
     },
     "exclude": [
         "node_modules",
