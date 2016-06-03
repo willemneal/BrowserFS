@@ -1,9 +1,9 @@
-import file = require('../core/file');
-import file_system = require('../core/file_system');
+import {File, BaseFile} from'../core/file';
+import {FileSystem} from '../core/file_system';
 import Stats from '../core/node_fs_stats';
-import {FileFlag} from '../core/file_flag';
+import FileFlag from '../core/file_flag';
 import {ApiError, ErrorCode} from '../core/api_error';
-import fs = require('../core/node_fs');
+import fs from '../core/node_fs';
 
 /**
  * An implementation of the File interface that operates on a file that is
@@ -14,7 +14,7 @@ import fs = require('../core/node_fs');
  * extend this class and implement those two methods.
  * @todo 'close' lever that disables functionality once closed.
  */
-export class PreloadFile<T extends file_system.FileSystem> extends file.BaseFile {
+export default class PreloadFile<T extends FileSystem> extends BaseFile {
   private _pos: number = 0;
   private _path: string;
   protected _fs: T;
@@ -379,7 +379,7 @@ export class PreloadFile<T extends file_system.FileSystem> extends file.BaseFile
  * File class for the InMemory and XHR file systems.
  * Doesn't sync to anything, so it works nicely for memory-only files.
  */
-export class NoSyncFile<T extends file_system.FileSystem> extends PreloadFile<T> implements file.File {
+export class NoSyncFile<T extends FileSystem> extends PreloadFile<T> implements File {
   constructor(_fs: T, _path: string, _flag: FileFlag, _stat: Stats, contents?: NodeBuffer) {
     super(_fs, _path, _flag, _stat, contents);
   }

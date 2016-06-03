@@ -1,11 +1,11 @@
-import file_system = require('../core/file_system');
+import {FileSystem, SynchronousFileSystem} from '../core/file_system';
 import {ApiError, ErrorCode} from '../core/api_error';
-import {FileFlag, ActionType} from '../core/file_flag';
-import util = require('../core/util');
-import file = require('../core/file');
+import {default as FileFlag, ActionType} from '../core/file_flag';
+import * as util from '../core/util';
+import {File} from '../core/file';
 import Stats from '../core/node_fs_stats';
-import preload_file = require('../generic/preload_file');
-import path = require('path');
+import PreloadFile from '../generic/preload_file';
+import * as path from 'path';
 let deletionLogPath = '/.deletedFiles.log';
 
 /**
@@ -18,7 +18,7 @@ function makeModeWritable(mode: number): number {
 /**
  * Overlays a RO file to make it writable.
  */
-class OverlayFile extends preload_file.PreloadFile<OverlayFS> implements file.File {
+class OverlayFile extends PreloadFile<OverlayFS> implements File {
   constructor(fs: OverlayFS, path: string, flag: FileFlag, stats: Stats, data: Buffer) {
     super(fs, path, flag, stats, data);
   }
@@ -42,15 +42,15 @@ class OverlayFile extends preload_file.PreloadFile<OverlayFS> implements file.Fi
  *
  * Currently only works for two synchronous file systems.
  */
-export default class OverlayFS extends file_system.SynchronousFileSystem implements file_system.FileSystem {
-  private _writable: file_system.FileSystem;
-  private _readable: file_system.FileSystem;
+export default class OverlayFS extends SynchronousFileSystem implements FileSystem {
+  private _writable: FileSystem;
+  private _readable: FileSystem;
   private _isInitialized: boolean = false;
   private _initializeCallbacks: ((e?: ApiError) => void)[] = [];
   private _deletedFiles: {[path: string]: boolean} = {};
-  private _deleteLog: file.File = null;
+  private _deleteLog: File = null;
 
-  constructor(writable: file_system.FileSystem, readable: file_system.FileSystem) {
+  constructor(writable: FileSystem, readable: FileSystem) {
     super();
     this._writable = writable;
     this._readable = readable;
@@ -68,7 +68,7 @@ export default class OverlayFS extends file_system.SynchronousFileSystem impleme
     }
   }
 
-  public getOverlayedFileSystems(): { readable: file_system.FileSystem; writable: file_system.FileSystem; } {
+  public getOverlayedFileSystems(): { readable: FileSystem; writable: FileSystem; } {
     return {
       readable: this._readable,
       writable: this._writable
@@ -96,7 +96,7 @@ export default class OverlayFS extends file_system.SynchronousFileSystem impleme
     return true;
   }
 
-  public _syncSync(file: preload_file.PreloadFile<any>): void {
+  public _syncSync(file: PreloadFile<any>): void {
     this.createParentDirectories(file.getPath());
     this._writable.writeFileSync(file.getPath(), file.getBuffer(), null, FileFlag.getFileFlag('w'), file.getStats().mode);
   }
@@ -138,7 +138,7 @@ export default class OverlayFS extends file_system.SynchronousFileSystem impleme
           }
           // Open up the deletion log for appending.
           this._writable.open(deletionLogPath, FileFlag.getFileFlag('a'),
-            0x1a4, (err: ApiError, fd?: file.File) => {
+            0x1a4, (err: ApiError, fd?: File) => {
             if (err) {
               end(err);
             } else {
@@ -242,7 +242,7 @@ export default class OverlayFS extends file_system.SynchronousFileSystem impleme
       return oldStat;
     }
   }
-  public openSync(p: string, flag: FileFlag, mode: number): file.File {
+  public openSync(p: string, flag: FileFlag, mode: number): File {
     this.checkInitialized();
     if (this.existsSync(p)) {
       switch (flag.pathExistsAction()) {

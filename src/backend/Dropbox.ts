@@ -1,11 +1,11 @@
-import preload_file = require('../generic/preload_file');
-import file_system = require('../core/file_system');
-import file_flag = require('../core/file_flag');
+import PreloadFile from '../generic/preload_file';
+import {FileSystem, BaseFileSystem} from '../core/file_system';
+import FileFlag from '../core/file_flag';
 import {default as Stats, FileType} from '../core/node_fs_stats';
 import {ApiError, ErrorCode} from '../core/api_error';
-import file = require('../core/file');
-import async = require('async');
-import path = require('path');
+import {File} from '../core/file';
+import * as async from 'async';
+import * as path from 'path';
 import {arrayBuffer2Buffer, buffer2ArrayBuffer} from '../core/util';
 
 var errorCodeLookup: {[dropboxErrorCode: number]: ErrorCode} = null;
@@ -286,8 +286,8 @@ class CachedDropboxClient {
   }
 }
 
-export class DropboxFile extends preload_file.PreloadFile<DropboxFileSystem> implements file.File {
-  constructor(_fs: DropboxFileSystem, _path: string, _flag: file_flag.FileFlag, _stat: Stats, contents?: NodeBuffer) {
+export class DropboxFile extends PreloadFile<DropboxFileSystem> implements File {
+  constructor(_fs: DropboxFileSystem, _path: string, _flag: FileFlag, _stat: Stats, contents?: NodeBuffer) {
     super(_fs, _path, _flag, _stat, contents)
   }
 
@@ -311,7 +311,7 @@ export class DropboxFile extends preload_file.PreloadFile<DropboxFileSystem> imp
   }
 }
 
-export default class DropboxFileSystem extends file_system.BaseFileSystem implements file_system.FileSystem {
+export default class DropboxFileSystem extends BaseFileSystem implements FileSystem {
   // The Dropbox client.
   private _client: CachedDropboxClient;
 
@@ -418,7 +418,7 @@ export default class DropboxFileSystem extends file_system.BaseFileSystem implem
     });
   }
 
-  public open(path: string, flags: file_flag.FileFlag, mode: number, cb: (err: ApiError, fd?: file.File) => any): void {
+  public open(path: string, flags: FileFlag, mode: number, cb: (err: ApiError, fd?: File) => any): void {
     // Try and get the file's contents
     this._client.readFile(path, (error, content, dbStat) => {
       if (error) {
@@ -490,7 +490,7 @@ export default class DropboxFileSystem extends file_system.BaseFileSystem implem
    * Returns a BrowserFS object representing a File, created from the data
    * returned by calls to the Dropbox API.
    */
-  public _makeFile(path: string, flag: file_flag.FileFlag, stat: Dropbox.File.Stat, buffer: NodeBuffer): DropboxFile {
+  public _makeFile(path: string, flag: FileFlag, stat: Dropbox.File.Stat, buffer: NodeBuffer): DropboxFile {
     var type = this._statType(stat);
     var stats = new Stats(type, stat.size);
     return new DropboxFile(this, path, flag, stats, buffer);

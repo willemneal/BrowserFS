@@ -1,9 +1,9 @@
-import file_system = require('../core/file_system');
+import {SynchronousFileSystem, FileSystem} from '../core/file_system';
 import {ApiError, ErrorCode} from '../core/api_error';
-import file_flag = require('../core/file_flag');
-import file = require('../core/file');
+import FileFlag from '../core/file_flag';
+import {File} from '../core/file';
 import Stats from '../core/node_fs_stats';
-import preload_file = require('../generic/preload_file');
+import PreloadFile from '../generic/preload_file';
 
 interface IAsyncOperation {
 	apiMethod: string;
@@ -13,8 +13,8 @@ interface IAsyncOperation {
 /**
  * We define our own file to interpose on syncSync() for mirroring purposes.
  */
-class MirrorFile extends preload_file.PreloadFile<AsyncMirror> implements file.File {
-  constructor(fs: AsyncMirror, path: string, flag: file_flag.FileFlag, stat: Stats, data: Buffer) {
+class MirrorFile extends PreloadFile<AsyncMirror> implements File {
+  constructor(fs: AsyncMirror, path: string, flag: FileFlag, stat: Stats, data: Buffer) {
     super(fs, path, flag, stat, data);
   }
 
@@ -40,17 +40,17 @@ class MirrorFile extends preload_file.PreloadFile<AsyncMirror> implements file.F
  * The two stores will be kept in sync. The most common use-case is to pair a synchronous
  * in-memory filesystem with an asynchronous backing store.
  */
-export default class AsyncMirror extends file_system.SynchronousFileSystem implements file_system.FileSystem {
+export default class AsyncMirror extends SynchronousFileSystem implements FileSystem {
   /**
    * Queue of pending asynchronous operations.
    */
   private _queue: IAsyncOperation[] = [];
   private _queueRunning: boolean = false;
-  private _sync: file_system.FileSystem;
-  private _async: file_system.FileSystem;
+  private _sync: FileSystem;
+  private _async: FileSystem;
   private _isInitialized: boolean = false;
   private _initializeCallbacks: ((e?: ApiError) => void)[] = [];
-  constructor(sync: file_system.FileSystem, async: file_system.FileSystem) {
+  constructor(sync: FileSystem, async: FileSystem) {
     super();
     this._sync = sync;
     this._async = async;
@@ -70,8 +70,8 @@ export default class AsyncMirror extends file_system.SynchronousFileSystem imple
     return true;
   }
 
-  public _syncSync(fd: preload_file.PreloadFile<any>) {
-    this._sync.writeFileSync(fd.getPath(), fd.getBuffer(), null, file_flag.FileFlag.getFileFlag('w'), fd.getStats().mode);
+  public _syncSync(fd: PreloadFile<any>) {
+    this._sync.writeFileSync(fd.getPath(), fd.getBuffer(), null, FileFlag.getFileFlag('w'), fd.getStats().mode);
     this.enqueueOp({
       apiMethod: 'writeFile',
       arguments: [fd.getPath(), fd.getBuffer(), null, fd.getFlag(), fd.getStats().mode]
@@ -116,12 +116,12 @@ export default class AsyncMirror extends file_system.SynchronousFileSystem imple
             }
           });
         }, copyFile = (p: string, mode: number, cb: (err?: ApiError) => void) => {
-          this._async.readFile(p, null, file_flag.FileFlag.getFileFlag('r'), (err, data) => {
+          this._async.readFile(p, null, FileFlag.getFileFlag('r'), (err, data) => {
             if (err) {
               cb(err);
             } else {
               try {
-                this._sync.writeFileSync(p, data, null, file_flag.FileFlag.getFileFlag('w'), mode);
+                this._sync.writeFileSync(p, data, null, FileFlag.getFileFlag('w'), mode);
               } catch (e) {
                 err = e;
               } finally {
@@ -191,12 +191,12 @@ export default class AsyncMirror extends file_system.SynchronousFileSystem imple
     this.checkInitialized();
     return this._sync.statSync(p, isLstat);
   }
-  public openSync(p: string, flag: file_flag.FileFlag, mode: number): file.File {
+  public openSync(p: string, flag: FileFlag, mode: number): File {
     this.checkInitialized();
     // Sanity check: Is this open/close permitted?
     var fd = this._sync.openSync(p, flag, mode);
     fd.closeSync();
-    return new MirrorFile(this, p, flag, this._sync.statSync(p, false), this._sync.readFileSync(p, null, file_flag.FileFlag.getFileFlag('r')));
+    return new MirrorFile(this, p, flag, this._sync.statSync(p, false), this._sync.readFileSync(p, null, FileFlag.getFileFlag('r')));
   }
   public unlinkSync(p: string): void {
     this.checkInitialized();

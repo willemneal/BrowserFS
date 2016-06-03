@@ -1,4 +1,4 @@
-import api_error = require('./api_error');
+import {ApiError, ErrorCode} from './api_error';
 
 /**
  * @class
@@ -33,7 +33,7 @@ export enum ActionType {
  * Exclusive mode ensures that the file path is newly created.
  * @class
  */
-export class FileFlag {
+export default class FileFlag {
   // Contains cached FileMode instances.
   private static flagCache: { [mode: string]: FileFlag } = {};
   // Array of valid mode strings.
@@ -62,7 +62,7 @@ export class FileFlag {
   constructor(flagStr: string) {
     this.flagStr = flagStr;
     if (FileFlag.validFlagStrs.indexOf(flagStr) < 0) {
-      throw new api_error.ApiError(api_error.ErrorCode.EINVAL, "Invalid flag: " + flagStr);
+      throw new ApiError(ErrorCode.EINVAL, "Invalid flag: " + flagStr);
     }
   }
 

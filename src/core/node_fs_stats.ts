@@ -1,5 +1,5 @@
-import fs = require('fs');
-import file = require('./file');
+import * as fs from 'fs';
+import * as file from './file';
 
 /**
  * Indicates the type of the given file. Applied to 'mode'.

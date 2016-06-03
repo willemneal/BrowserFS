@@ -2,13 +2,17 @@
  * BrowserFS's main module. This is exposed in the browser via the BrowserFS global.
  */
 
-import buffer = require('buffer');
-import fs = require('./node_fs');
-import path = require('path');
-import file_system = require('./file_system');
+import * as buffer from 'buffer';
+import fs from './node_fs';
+import * as path from 'path';
+import {FileSystemConstructor, FileSystem} from './file_system';
 import EmscriptenFS from '../generic/emscripten_fs';
-import * as FileSystem from './backends';
+import * as Backends from './backends';
 import * as BFSUtils from './util';
+const FileSystems: {[name: string]: FileSystem} = {};
+for (let key in Backends) {
+  FileSystems[key] = Backends[key];
+}
 
 if (process['initializeTTYs']) {
   process['initializeTTYs']();
@@ -43,8 +47,8 @@ export function install(obj: any) {
   };
 }
 
-export function registerFileSystem(name: string, fs: file_system.FileSystemConstructor) {
-  (<any> FileSystem)[name] = fs;
+export function registerFileSystem(name: string, fs: FileSystemConstructor) {
+  (<any> FileSystems)[name] = fs;
 }
 
 export function BFSRequire(module: 'fs'): typeof fs;
@@ -67,7 +71,7 @@ export function BFSRequire(module: string): any {
     case 'bfs_utils':
       return BFSUtils;
     default:
-      return FileSystem[module];
+      return FileSystems[module];
   }
 }
 
@@ -77,7 +81,7 @@ export function BFSRequire(module: string): any {
  * @param {BrowserFS.FileSystem} rootFS - The root filesystem to use for the
  *   entire BrowserFS file system.
  */
-export function initialize(rootfs: file_system.FileSystem) {
+export function initialize(rootfs: FileSystem) {
   return fs.initialize(rootfs);
 }
 

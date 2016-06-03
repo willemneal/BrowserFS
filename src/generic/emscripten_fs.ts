@@ -9,9 +9,9 @@
  * Adapted from Emscripten's NodeFS:
  * https://raw.github.com/kripken/emscripten/master/src/library_nodefs.js
  */
-import BrowserFS = require('../core/browserfs');
+import * as BrowserFS from '../core/browserfs';
 import FS from '../core/FS';
-import fs = require('../core/node_fs');
+import fs from '../core/node_fs';
 import NodeStats from '../core/node_fs_stats';
 import {uint8Array2Buffer} from '../core/util';
 

@@ -2,7 +2,7 @@
  * Grab bag of utility functions used across the code.
  */
 import {FileSystem} from './file_system';
-import path = require('path');
+import * as path from 'path';
 
 const SUPPORTS_TYPED_ARRAYS = typeof(ArrayBuffer) !== 'undefined';
 
@@ -99,7 +99,7 @@ export function arrayish2Buffer(arr: Arrayish<number>): Buffer {
  */
 export function uint8Array2Buffer(u8: Uint8Array): Buffer {
   if (u8.byteOffset === 0 && u8.byteLength === u8.buffer.byteLength) {
-    return arrayBuffer2Buffer(u8);
+    return arrayBuffer2Buffer(u8.buffer);
   } else {
     return new Buffer(u8);
   }

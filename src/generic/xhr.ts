@@ -3,7 +3,7 @@
  * XmlHttpRequest across browsers.
  */
 
-import util = require('../core/util');
+import * as util from '../core/util';
 import {ApiError, ErrorCode} from '../core/api_error';
 
 // See core/polyfills for the VBScript definition of these functions.

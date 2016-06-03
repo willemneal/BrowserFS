@@ -1,11 +1,11 @@
-import file_system = require('../core/file_system');
+import {FileSystem, BaseFileSystem} from '../core/file_system';
 import {ApiError, ErrorCode} from '../core/api_error';
-import {FileFlag, ActionType} from '../core/file_flag';
+import {default as FileFlag, ActionType} from '../core/file_flag';
 import {copyingSlice} from '../core/util';
-import file = require('../core/file');
+import {File} from '../core/file';
 import Stats from '../core/node_fs_stats';
-import preload_file = require('../generic/preload_file');
-import xhr = require('../generic/xhr');
+import {NoSyncFile} from '../generic/preload_file';
+import * as xhr from '../generic/xhr';
 import {FileIndex, DirInode, FileInode, Inode, isFileInode, isDirInode} from '../generic/file_index';
 
 /**
@@ -24,7 +24,7 @@ function tryToString(buff: Buffer, encoding: string, cb: (e: ApiError, rv?: stri
 /**
  * A simple filesystem backed by XmlHttpRequests.
  */
-export default class XmlHttpRequest extends file_system.BaseFileSystem implements file_system.FileSystem {
+export default class XmlHttpRequest extends BaseFileSystem implements FileSystem {
   private _index: FileIndex<{}>;
   public prefixUrl: string;
   /**
@@ -199,7 +199,7 @@ export default class XmlHttpRequest extends file_system.BaseFileSystem implement
     return stats;
   }
 
-  public open(path: string, flags: FileFlag, mode: number, cb: (e: ApiError, file?: file.File) => void): void {
+  public open(path: string, flags: FileFlag, mode: number, cb: (e: ApiError, file?: File) => void): void {
     // INVARIANT: You can't write to files on this file system.
     if (flags.isWriteable()) {
       return cb(new ApiError(ErrorCode.EPERM, path));
@@ -220,7 +220,7 @@ export default class XmlHttpRequest extends file_system.BaseFileSystem implement
           // Use existing file contents.
           // XXX: Uh, this maintains the previously-used flag.
           if (stats.file_data != null) {
-            return cb(null, new preload_file.NoSyncFile(_this, path, flags, stats.clone(), stats.file_data));
+            return cb(null, new NoSyncFile(_this, path, flags, stats.clone(), stats.file_data));
           }
           // @todo be lazier about actually requesting the file
           this._requestFileAsync(path, 'buffer', function(err: ApiError, buffer?: NodeBuffer) {
@@ -230,7 +230,7 @@ export default class XmlHttpRequest extends file_system.BaseFileSystem implement
             // we don't initially have file sizes
             stats.size = buffer.length;
             stats.file_data = buffer;
-            return cb(null, new preload_file.NoSyncFile(_this, path, flags, stats.clone(), buffer));
+            return cb(null, new NoSyncFile(_this, path, flags, stats.clone(), buffer));
           });
           break;
         default:
@@ -241,7 +241,7 @@ export default class XmlHttpRequest extends file_system.BaseFileSystem implement
     }
   }
 
-  public openSync(path: string, flags: FileFlag, mode: number): file.File {
+  public openSync(path: string, flags: FileFlag, mode: number): File {
     // INVARIANT: You can't write to files on this file system.
     if (flags.isWriteable()) {
       throw new ApiError(ErrorCode.EPERM, path);
@@ -261,14 +261,14 @@ export default class XmlHttpRequest extends file_system.BaseFileSystem implement
           // Use existing file contents.
           // XXX: Uh, this maintains the previously-used flag.
           if (stats.file_data != null) {
-            return new preload_file.NoSyncFile(this, path, flags, stats.clone(), stats.file_data);
+            return new NoSyncFile(this, path, flags, stats.clone(), stats.file_data);
           }
           // @todo be lazier about actually requesting the file
           var buffer = this._requestFileSync(path, 'buffer');
           // we don't initially have file sizes
           stats.size = buffer.length;
           stats.file_data = buffer;
-          return new preload_file.NoSyncFile(this, path, flags, stats.clone(), buffer);
+          return new NoSyncFile(this, path, flags, stats.clone(), buffer);
         default:
           throw new ApiError(ErrorCode.EINVAL, 'Invalid FileMode object.');
       }
@@ -304,7 +304,7 @@ export default class XmlHttpRequest extends file_system.BaseFileSystem implement
     // Wrap cb in file closing code.
     var oldCb = cb;
     // Get file.
-    this.open(fname, flag, 0x1a4, function(err: ApiError, fd?: file.File) {
+    this.open(fname, flag, 0x1a4, function(err: ApiError, fd?: File) {
       if (err) {
         return cb(err);
       }
@@ -316,7 +316,7 @@ export default class XmlHttpRequest extends file_system.BaseFileSystem implement
           return oldCb(err, arg);
         });
       };
-      var fdCast = <preload_file.NoSyncFile<XmlHttpRequest>> fd;
+      var fdCast = <NoSyncFile<XmlHttpRequest>> fd;
       var fdBuff = <Buffer> fdCast.getBuffer();
       if (encoding === null) {
         cb(err, copyingSlice(fdBuff));
@@ -333,7 +333,7 @@ export default class XmlHttpRequest extends file_system.BaseFileSystem implement
     // Get file.
     var fd = this.openSync(fname, flag, 0x1a4);
     try {
-      var fdCast = <preload_file.NoSyncFile<XmlHttpRequest>> fd;
+      var fdCast = <NoSyncFile<XmlHttpRequest>> fd;
       var fdBuff = <Buffer> fdCast.getBuffer();
       if (encoding === null) {
         return copyingSlice(fdBuff);

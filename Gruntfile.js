@@ -1,4 +1,11 @@
 var fs = require('fs'),
+  babel = require('rollup-plugin-babel'),
+  uglify = require('rollup-plugin-uglify'),
+  typescript = require('rollup-plugin-typescript'),
+  nodeResolve = require('rollup-plugin-node-resolve'),
+  commonjs = require('rollup-plugin-commonjs'),
+  inject = require('rollup-plugin-inject'),
+  alias = require('rollup-plugin-alias'),
   path = require('path'),
   _ = require('underscore'),
   mold = require('mold-source-map'),
@@ -22,7 +29,6 @@ var fs = require('fs'),
       'tsify', 'browserify-derequire'
     ]
   },
-  nodeTSConfig = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'tsconfig.json')).toString()),
   karmaFiles = [
     // Main module and fixtures loader
     'test/harness/test.js',
@@ -35,13 +41,73 @@ var fs = require('fs'),
     { pattern: 'src/**/*.ts*', included: false, watched: false },
     { pattern: 'typings/**/*.d.ts', included: false },
     { pattern: 'node_modules/pako/dist/*.js*', included: false }
-  ],
+  ];
   karmaBrowsers = require('detect-browsers').getInstalledBrowsers().map(function(item) {
     return item.name;
   }).filter(function(name, index, arr) {
     // Remove duplicates, and items with a space in them.
     return arr.indexOf(name) === index && arr.indexOf(' ') === -1;
   });
+
+function getRollupConfig(release) {
+  // Globals:
+  // - RELEASE (TODO)
+  // - Buffer
+  // - process
+  // UglifyJS if release (TODO)
+  // TypeScript: Use ES6 output.
+  // Source maps w/ inlined sources
+  // Alias modules:
+  // - fs, path, wrapped-assert
+
+  return {
+    sourceMap: true,
+    format: 'es6',
+    exports: 'named',
+    useStrict: true,
+    plugins: [
+      typescript({
+        declaration: false,
+        typescript: require('typescript')
+      }),
+      alias({
+        resolve: ['.js', '.ts'],
+        buffer: require.resolve('bfs-buffer'),
+        fs: './src/core/node_fs',
+        path: require.resolve('bfs-path'),
+        'wrapped-assert': './test/harness/wrapped-assert'
+      }),
+      nodeResolve({
+        jsnext: true,
+        main: true,
+        browser: true,
+        preferBuiltins: false
+      }),
+      commonjs({
+        include: ['node_modules/**'],
+        sourceMap: true,
+        extensions: ['.js', '.ts'],
+        ignoreGlobal: true
+      }),
+      inject({
+        process: require.resolve('bfs-process'),
+        Buffer: [require.resolve('bfs-buffer'), 'Buffer']
+      })/*,
+      babel({
+        exclude: "node_modules/**",
+        presets: ["es2015-rollup"]
+      })/*,
+      uglify({
+        min: {
+          options: {
+            sourceMap: true,
+            sourceMapIncludeSources: true
+          }
+        }
+      })*/
+    ]
+  };
+}
 
 if (karmaBrowsers.indexOf('IE') !== -1) {
   karmaBrowsers.push('IE9', 'IE8');
@@ -90,14 +156,6 @@ var karmaConfig = {
       }
     }
   };
-
-// Filter out test/ files.
-nodeTSConfig.files = nodeTSConfig.files.filter(function(file) {
-  return file.slice(0, 4) !== 'test';
-});
-
-// Ugh, need to write this to a file for grunt-ts.
-fs.writeFileSync(path.resolve(__dirname, "generated_node_tsconfig.json"), JSON.stringify(nodeTSConfig));
 
 if (!fs.existsSync('build')) {
   fs.mkdirSync('build');
@@ -261,6 +319,14 @@ module.exports = function(grunt) {
         }
       }
     },
+    rollup: {
+      options: getRollupConfig(false),
+      release: {
+        files: {
+          'build/browserfs.js': 'src/browserify_main.ts'
+        }
+      }
+    },
     shell: {
       gen_cert: {
         command: [
@@ -329,6 +395,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-exorcise');
   grunt.loadNpmTasks('grunt-karma');
+  grunt.loadNpmTasks('grunt-rollup');
   grunt.loadNpmTasks('grunt-shell');
   grunt.loadNpmTasks('grunt-ts');
   grunt.loadNpmTasks('grunt-contrib-copy');

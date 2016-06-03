@@ -3,7 +3,7 @@ import {default as Stats, FileType} from '../core/node_fs_stats';
 /**
  * Generic inode definition that can easily be serialized.
  */
-class Inode {
+export default class Inode {
   constructor(public id: string,
     public size: number,
     public mode: number,
@@ -117,5 +117,3 @@ class Inode {
     return (this.mode & 0xF000) === FileType.DIRECTORY;
   }
 }
-
-export = Inode;

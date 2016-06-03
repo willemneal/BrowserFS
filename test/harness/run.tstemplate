@@ -1,4 +1,4 @@
-/// <reference path="../../typings/main.d.ts" />
+/// <reference path="../../typings/index.d.ts" />
 /**
  * The template from which `run.ts` is generated.
  *
@@ -13,12 +13,14 @@
  * (It's also less hacky, as now things will be typechecked at bundle-time. :) )
  */
 // Install polyfills first.
-require('../../src/main');
- 
-import runTests = require('./setup');
-import BackendFactory = require('./BackendFactory');
+import * as main from '../../src/main';
 
-// Will be replaced with arrays of hardcoded require statements for the various modules.
+import runTests from './setup';
+import BackendFactory from './BackendFactory';
+// Will be replaced with import statements for FS factories.
+/*FACTORY_IMPORTS*/
+
+// Will be replaced with the imported factories.
 var backends: BackendFactory[] = [/*FACTORIES*/],
   tests: {
     fs: {

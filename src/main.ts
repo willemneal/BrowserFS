@@ -2,7 +2,7 @@
  * BrowserFS's main entry point.
  * It installs all of the needed polyfills, and requires() the main module.
  */
-import global = require('./core/global');
+import global from './core/global';
 
 // IE < 9 does not define this function.
 if (!Date.now) {
@@ -308,5 +308,4 @@ if (typeof(document) !== 'undefined' && typeof(window) !== 'undefined' && (<any>
     "</script>\r\n");
 }
 
-import bfs = require('./core/browserfs');
-export = bfs;
+export * from './core/browserfs';

@@ -1,11 +1,11 @@
-import file_system = require('../core/file_system');
+import {FileSystem, SynchronousFileSystem, BaseFileSystem} from '../core/file_system';
 import {ApiError, ErrorCode} from '../core/api_error';
 import {default as Stats, FileType} from '../core/node_fs_stats';
-import file = require('../core/file');
-import file_flag = require('../core/file_flag');
-import path = require('path');
-import Inode = require('../generic/inode');
-import preload_file = require('../generic/preload_file');
+import {File} from '../core/file';
+import FileFlag from '../core/file_flag';
+import * as path from 'path';
+import Inode from '../generic/inode';
+import PreloadFile from '../generic/preload_file';
 var ROOT_NODE_ID: string = "/";
 
 /**
@@ -212,8 +212,8 @@ export interface SyncKeyValueFileSystemOptions {
   //supportLinks?: boolean;
 }
 
-export class SyncKeyValueFile extends preload_file.PreloadFile<SyncKeyValueFileSystem> implements file.File {
-  constructor(_fs: SyncKeyValueFileSystem, _path: string, _flag: file_flag.FileFlag, _stat: Stats, contents?: NodeBuffer) {
+export class SyncKeyValueFile extends PreloadFile<SyncKeyValueFileSystem> implements File {
+  constructor(_fs: SyncKeyValueFileSystem, _path: string, _flag: FileFlag, _stat: Stats, contents?: NodeBuffer) {
     super(_fs, _path, _flag, _stat, contents);
   }
 
@@ -238,7 +238,7 @@ export class SyncKeyValueFile extends preload_file.PreloadFile<SyncKeyValueFileS
  * @todo Introduce Node ID caching.
  * @todo Check modes.
  */
-export class SyncKeyValueFileSystem extends file_system.SynchronousFileSystem {
+export class SyncKeyValueFileSystem extends SynchronousFileSystem {
   private store: SyncKeyValueStore;
   constructor(options: SyncKeyValueFileSystemOptions) {
     super();
@@ -486,7 +486,7 @@ export class SyncKeyValueFileSystem extends file_system.SynchronousFileSystem {
     return this.findINode(this.store.beginTransaction('readonly'), p).toStats();
   }
 
-  public createFileSync(p: string, flag: file_flag.FileFlag, mode: number): file.File {
+  public createFileSync(p: string, flag: FileFlag, mode: number): File {
     var tx = this.store.beginTransaction('readwrite'),
       data = new Buffer(0),
       newFile = this.commitNewFile(tx, p, FileType.FILE, mode, data);
@@ -494,7 +494,7 @@ export class SyncKeyValueFileSystem extends file_system.SynchronousFileSystem {
     return new SyncKeyValueFile(this, p, flag, newFile.toStats(), data);
   }
 
-  public openFileSync(p: string, flag: file_flag.FileFlag): file.File {
+  public openFileSync(p: string, flag: FileFlag): File {
     var tx = this.store.beginTransaction('readonly'),
       node = this.findINode(tx, p),
       data = tx.get(node.id);
@@ -661,8 +661,8 @@ export interface AsyncKeyValueRWTransaction extends AsyncKeyValueROTransaction {
   abort(cb: (e?: ApiError) => void): void;
 }
 
-export class AsyncKeyValueFile extends preload_file.PreloadFile<AsyncKeyValueFileSystem> implements file.File {
-  constructor(_fs: AsyncKeyValueFileSystem, _path: string, _flag: file_flag.FileFlag, _stat: Stats, contents?: NodeBuffer) {
+export class AsyncKeyValueFile extends PreloadFile<AsyncKeyValueFileSystem> implements File {
+  constructor(_fs: AsyncKeyValueFileSystem, _path: string, _flag: FileFlag, _stat: Stats, contents?: NodeBuffer) {
     super(_fs, _path, _flag, _stat, contents);
   }
 
@@ -688,7 +688,7 @@ export class AsyncKeyValueFile extends preload_file.PreloadFile<AsyncKeyValueFil
  * An "Asynchronous key-value file system". Stores data to/retrieves data from
  * an underlying asynchronous key-value store.
  */
-export class AsyncKeyValueFileSystem extends file_system.BaseFileSystem {
+export class AsyncKeyValueFileSystem extends BaseFileSystem {
   private store: AsyncKeyValueStore;
 
   /**
@@ -1078,7 +1078,7 @@ export class AsyncKeyValueFileSystem extends file_system.BaseFileSystem {
     });
   }
 
-  public createFile(p: string, flag: file_flag.FileFlag, mode: number, cb: (e: ApiError, file?: file.File) => void): void {
+  public createFile(p: string, flag: FileFlag, mode: number, cb: (e: ApiError, file?: File) => void): void {
     var tx = this.store.beginTransaction('readwrite'),
       data = new Buffer(0);
 
@@ -1089,7 +1089,7 @@ export class AsyncKeyValueFileSystem extends file_system.BaseFileSystem {
     });
   }
 
-  public openFile(p: string, flag: file_flag.FileFlag, cb: (e: ApiError, file?: file.File) => void): void {
+  public openFile(p: string, flag: FileFlag, cb: (e: ApiError, file?: File) => void): void {
     var tx = this.store.beginTransaction('readonly');
     // Step 1: Grab the file's inode.
     this.findINode(tx, p, (e: ApiError, inode?: Inode) => {

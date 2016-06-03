@@ -33,10 +33,8 @@ if (typeof console.log == "object") {
   }
 }
 
-export = {
-  tmpDir: '/tmp/',
-  fixturesDir: '/test/fixtures/files/node',
-  // NodeJS uses 'common.error' for test messages, but this is inappropriate.
-  // I map it to log, instead.
-  error: function () { console.log.apply(console, arguments); }
-};
+export let tmpDir= '/tmp/';
+export let fixturesDir = '/test/fixtures/files/node';
+// NodeJS uses 'common.error' for test messages, but this is inappropriate.
+// I map it to log, instead.
+export let error = function () { console.log.apply(console, arguments); }

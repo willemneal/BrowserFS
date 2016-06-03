@@ -1,8 +1,8 @@
 import InMemoryFileSystem from '../../../src/backend/InMemory';
-import file_system = require('../../../src/core/file_system');
-import BackendFactory = require('../BackendFactory');
+import {FileSystem} from '../../../src/core/file_system';
+import BackendFactory from '../BackendFactory';
 
-function InMemoryFSFactory(cb: (name: string, objs: file_system.FileSystem[]) => void): void {
+export default function InMemoryFSFactory(cb: (name: string, objs: FileSystem[]) => void): void {
   if (InMemoryFileSystem.isAvailable()) {
     cb('InMemory', [new InMemoryFileSystem()]);
   } else {
@@ -11,5 +11,3 @@ function InMemoryFSFactory(cb: (name: string, objs: file_system.FileSystem[]) =>
 }
 
 var _: BackendFactory = InMemoryFSFactory;
-
-export = InMemoryFSFactory;
