@@ -1454,6 +1454,10 @@ export interface FSModule extends FS {
    */
   FS: typeof FS;
   /**
+   * The FS.Stats constructor.
+   */
+  Stats: typeof Stats;
+  /**
    * Retrieve the FS object backing the fs module.
    */
   getFSModule(): FS;
