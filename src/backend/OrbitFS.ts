@@ -1,14 +1,16 @@
 import PreloadFile from '../generic/preload_file';
-import {BaseFileSystem, FileSystem as IFileSystem, BFSOneArgCallback, BFSCallback, FileSystemOptions} from '../core/file_system';
+import {BaseFileSystem, FileSystem, BFSOneArgCallback, BFSCallback, FileSystemOptions} from '../core/file_system';
 import {ApiError} from '../core/api_error';
 import {FileFlag} from '../core/file_flag';
 import {default as Stats, FileType} from '../core/node_fs_stats';
 import {File as IFile} from '../core/file';
 import {wrapSync} from 'async';
 import {buffer2ArrayBuffer} from '../core/util';
-import {OrbitFS as orbitfs, StatInfo} from '../../../src/fs';
-import * as Orbitdb from "orbit-db";
+
+import {OrbitFS as orbitfs}  from '../generic/orbitfs';
+// import * as Orbitdb from "orbit-db";
 import * as IPFS from 'ipfs';
+
 /**
  * Converts the given DOMError into an appropriate ApiError.
  * @url https://developer.mozilla.org/en-US/docs/Web/API/DOMError
@@ -60,12 +62,9 @@ export class OrbitFSFile extends PreloadFile<OrbitFS> implements IFile {
 }
 
 export interface OrbitFSOptions {
-  // storage quota to request, in megabytes. Allocated value may be less.
-  ipfs: IPFS;
+  ipfs?: IPFS;
   address?: string;
   permissions?: string[];
-  // window.PERSISTENT or window.TEMPORARY. Defaults to PERSISTENT.
-  // type?: number;
 }
 
 /**
@@ -74,13 +73,13 @@ export interface OrbitFSOptions {
  *
  *
  */
-export default class OrbitFS extends BaseFileSystem implements IFileSystem {
+export default class OrbitFS extends BaseFileSystem implements FileSystem {
   public static readonly Name = "OrbitFS";
 
   public static readonly Options: FileSystemOptions = {
     ipfs: {
       type: "object",
-      optional: false,
+      optional: true,
       description: "The IPFS instance needed by OrbitDB and ipfs-mfs"
     },
     address: {
@@ -97,16 +96,14 @@ export default class OrbitFS extends BaseFileSystem implements IFileSystem {
   };
 
   /**
-   * Creates an HTML5FS instance with the given options.
+   * Creates an OrbitFS instance with the given options.
    */
   public static Create(opts: OrbitFSOptions, cb: BFSCallback<OrbitFS>): void {
     const fs = new OrbitFS(opts);
     fs._allocate((e) => e ? cb(e) : cb(null, fs));
   }
 
-  // HTML5File reaches into HTML5FS. :/
   public _fs: orbitfs;
-  private orbitdb: Orbitdb;
   private address: string;
   private permissions: string[];
   /**
@@ -118,7 +115,6 @@ export default class OrbitFS extends BaseFileSystem implements IFileSystem {
     super();
     this.address = opts.address || "";
     this.permissions =  opts.permissions || ["*"];
-    this.orbitdb = new Orbitdb(opts.ipfs, './.orbitdb');
   }
 
   public getName(): string {
@@ -222,14 +218,16 @@ export default class OrbitFS extends BaseFileSystem implements IFileSystem {
   /**
    * Initializes fs
    */
-  private async _allocate(cb: BFSOneArgCallback): Promise<void> {
+  private _allocate(cb: BFSOneArgCallback): void {
     try {
-        this._fs = await orbitfs.create(this.orbitdb, this.address, this.permissions)
+        wrapSync(orbitfs.create)(this.address, this.permissions, (res:orbitfs) => {
+          this._fs = res;
+          cb();
+        });
     }
     catch(err){
-      cb(err)
+      cb(err);
     }
-    cb();
   }
 
   /**
@@ -245,5 +243,21 @@ export default class OrbitFS extends BaseFileSystem implements IFileSystem {
           cb(err)
       }
     });
+  }
+
+  static Factory(cb: (name: string, objs: FileSystem[])=>void){
+         OrbitFS.CreateDefault((_err, res: OrbitFS ) =>  {
+                cb(OrbitFS.Name, [res]);
+             });
+  }
+
+  static CreateDefault(cb: (_err: any, res: OrbitFS) => void): any {
+    const fs = new OrbitFS({});
+    wrapSync(orbitfs.createDefault)((_fs: orbitfs) => {
+      fs._fs = _fs;
+      cb(null, fs);
+    });
+
+
   }
 }

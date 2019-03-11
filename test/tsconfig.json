@@ -19,6 +19,7 @@
     ]
   },
   "include": [
-    "**/*", "../src/**/*.d.ts", "../src/generic/dropbox_bridge*.ts"
+    "**/*", "../src/**/*.d.ts", "../src/generic/dropbox_bridge*.ts",
+    "../src/generic/orbitfs*.ts",
   ]
 }
